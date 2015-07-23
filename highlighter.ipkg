@@ -1,0 +1,8 @@
+package highlighter
+
+sourcedir = src
+modules = SExpParse, Main
+executable = highlighter
+main = Main
+
+opts = "-p lightyear --typeintype"
