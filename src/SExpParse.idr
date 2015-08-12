@@ -9,16 +9,16 @@ import Lightyear.Strings
 ||| A description of message formats. This gives the syntax of the
 ||| S-expressions that make up messages.
 data MessageFmt =
-  ||| A particular keyword
-  KWD String |
-  ||| Some data string
-  STRING |
-  ||| Some data integer
-  INT |
-  ||| Any number of repetitions of the same format
-  MANY MessageFmt |
-  ||| A list, where each element has a specific format
-  SEQ (List MessageFmt)
+	||| A particular keyword
+	KWD String |
+	||| Some data string
+	STRING |
+	||| Some data integer
+	INT |
+	||| Any number of repetitions of the same format
+	MANY MessageFmt |
+	||| A list, where each element has a specific format
+	SEQ (List MessageFmt)
 
 
 %name MessageFmt fmt, f
@@ -30,21 +30,21 @@ data Keyword : String -> Type where
   Kwd : (s : String) -> Keyword s
 
 mutual
-  ||| A list of messages, elementwise based on a list of formats.
-  |||
-  ||| This could also be `HList . map typeOf`, but it's a bit more
-  ||| clear this way.
-  data MessageList : List MessageFmt -> Type where
-    Nil : MessageList []
-    (::) : (typeOf t) -> MessageList ts -> MessageList (t :: ts)
+	||| A list of messages, elementwise based on a list of formats.
+	|||
+	||| This could also be `HList . map typeOf`, but it's a bit more
+	||| clear this way.
+	data MessageList : List MessageFmt -> Type where
+		Nil : MessageList []
+		(::) : (typeOf t) -> MessageList ts -> MessageList (t :: ts)
 
-  ||| The type of Idris data that represents a particular format.
-  typeOf : MessageFmt -> Type
-  typeOf (KWD name) = Keyword name
-  typeOf STRING = String
-  typeOf INT = Integer
-  typeOf (MANY fmt) = List (typeOf fmt)
-  typeOf (SEQ fmts) = MessageList fmts
+	||| The type of Idris data that represents a particular format.
+	typeOf : MessageFmt -> Type
+	typeOf (KWD name) = Keyword name
+	typeOf STRING = String
+	typeOf INT = Integer
+	typeOf (MANY fmt) = List (typeOf fmt)
+	typeOf (SEQ fmts) = MessageList fmts
 
 
 --------------------------
@@ -87,11 +87,11 @@ okMsg fmt = SEQ [KWD "ok", fmt]
 ||| Escape the characters in a string
 escape : String -> String
 escape str = concat (map escapeChar (unpack str))
-  where
-    escapeChar : Char -> String
-    escapeChar '\\' = "\\\\"
-    escapeChar '\"' = "\\\""
-    escapeChar c = singleton c
+	where
+		escapeChar : Char -> String
+		escapeChar '\\' = "\\\\"
+		escapeChar '\"' = "\\\""
+		escapeChar c = singleton c
 
 ||| Write data to an sexpr according to a message format specifier
 serialize : (fmt : MessageFmt) -> (typeOf fmt) -> String
@@ -100,29 +100,35 @@ serialize STRING str = "\"" ++ escape str ++ "\""
 serialize INT i = show i
 serialize (MANY fmt) xs = "(" ++ concat (intersperse " " (map (serialize fmt) xs)) ++ ")"
 serialize (SEQ fmts) xs  = "(" ++ serializeList fmts xs ++ ")"
-  where serializeList : (fs : List MessageFmt) -> MessageList fs -> String
-        serializeList []  [] = ""
-        serializeList (f::List.Nil) (x::MessageList.Nil) = serialize f x
-        serializeList (f::fs) (x::xs) = serialize f x ++ " " ++ serializeList fs xs
+	where
+		serializeList : (fs : List MessageFmt) -> MessageList fs -> String
+		serializeList []  [] = ""
+		serializeList (f::List.Nil) (x::MessageList.Nil) = serialize f x
+		serializeList (f::fs) (x::xs) = serialize f x ++ " " ++ serializeList fs xs
 
 ||| Parse a backslash-escaped character
 specialChar : Parser Char
 specialChar = do
-  c <- satisfy (const True)
-  case c of
-    '\"' => pure '\"'
-    '\\' => pure '\\'
-    ch   => pure ch
+	c <- satisfy (const True)
+	case c of
+		'\"' => pure '\"'
+		'\\' => pure '\\'
+		ch   => pure ch
 
 ||| Parse the rest of a string, after the opening quote
 strContents : Parser (List Char)
-strContents = (char '\"' *!> pure [])
-          <|> do c <- satisfy (/= '\"')
-                 if (c == '\\')
-                   then do c' <- specialChar
-                           rest <- strContents
-                           return (c' :: rest)
-                   else map (c ::) strContents
+strContents =
+	(char '\"' *!> pure [])
+		<|> do
+				c <- satisfy (/= '\"')
+				if (c == '\\')
+				then
+					do
+						c' <- specialChar
+						rest <- strContents
+						return (c' :: rest)
+				else
+					map (c ::) strContents
 
 ||| Parse a string
 str : Parser String
@@ -135,14 +141,15 @@ inParens p = char '(' *!> p <*! char ')'
 ||| Derive a parser for some message format. It will extract the correct
 ||| type, as determined by `typeOf`.
 parser : (fmt : MessageFmt) -> Parser (typeOf fmt)
-parser (KWD x)    = string (":"++x) *!> pure (Kwd x)
-parser STRING     = str
-parser INT        = integer
+parser (KWD x)	= string (":"++x) *!> pure (Kwd x)
+parser STRING	 = str
+parser INT		= integer
 parser (MANY fmt) = inParens (parser fmt `sepBy` space)
 parser (SEQ fmts) = inParens (parserForElts fmts)
-  where parserForElts : (fmts : List MessageFmt) -> Parser (MessageList fmts)
-        parserForElts []      = pure []
-        parserForElts (f::fs) = [| (parser f <*! space) :: (parserForElts fs) |]
+	where
+		parserForElts : (fmts : List MessageFmt) -> Parser (MessageList fmts)
+		parserForElts []	  = pure []
+		parserForElts (f::fs) = [| (parser f <*! space) :: (parserForElts fs) |]
 
 
 ----------------------------------------
@@ -156,8 +163,8 @@ testA = parse (parser completionReturn) "(\"foo\" \"fonky\" \"founder\")"
 covering
 extractCompletionString : String -> Either String String
 extractCompletionString str =
-  case !(parse (parser replCompletions) str) of
-    [Kwd "repl-completions", item] => return item
+	case !(parse (parser replCompletions) str) of
+		[Kwd "repl-completions", item] => return item
 
 
 serializeCompletionCmd : String -> String
